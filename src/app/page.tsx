@@ -60,7 +60,7 @@ export default function LoginPage() {
           </h1>
 
           <p className="text-muted text-base sm:text-lg leading-relaxed">
-            Entra con tu nombre, propón lo que sabes y vota lo que te mueve. 0% relleno 🔥
+            Entra con tu nombre, di qué quieres enseñar o aprender, y vota lo que te mueve. 0% relleno 🔥
           </p>
         </div>
 

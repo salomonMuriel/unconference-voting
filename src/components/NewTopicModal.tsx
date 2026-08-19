@@ -52,12 +52,12 @@ export function NewTopicModal({ type, onClose, onSubmit }: NewTopicModalProps) {
         </div>
 
         <h2 className="font-display text-2xl font-bold mb-1.5">
-          {isPitch ? "Proponer charla" : "Pedir charla"}
+          {isPitch ? "Quiero enseñar de…" : "Quiero aprender de…"}
         </h2>
         <p className="text-muted text-sm mb-6 leading-relaxed">
           {isPitch
-            ? "Cuenta qué sabes hacer. Tú serás quien la dé."
-            : "Sugiere un tema que quieras aprender — alguien de la comunidad puede tomarlo."}
+            ? "Cuenta qué sabes hacer. Tú das la charla."
+            : "Di qué te gustaría aprender — alguien de la comunidad puede enseñarlo."}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,7 +70,7 @@ export function NewTopicModal({ type, onClose, onSubmit }: NewTopicModalProps) {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={isPitch ? "¿De qué vas a hablar?" : "¿Qué te gustaría aprender?"}
+              placeholder={isPitch ? "¿De qué quieres enseñar?" : "¿De qué quieres aprender?"}
               autoFocus
               className={inputClass}
             />
@@ -106,7 +106,7 @@ export function NewTopicModal({ type, onClose, onSubmit }: NewTopicModalProps) {
               iconRight={<ArrowRight size={18} strokeWidth={1.5} />}
               className="w-full sm:w-auto"
             >
-              {isPitch ? "¡Proponerla!" : "¡Pedirla!"}
+              {isPitch ? "¡Quiero enseñarlo!" : "¡Quiero aprenderlo!"}
             </PillButton>
           </div>
         </form>

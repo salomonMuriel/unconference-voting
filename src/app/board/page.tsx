@@ -242,27 +242,33 @@ export default function BoardPage() {
         </div>
 
         {phase === "submission" ? (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <PillButton
-              size="sm"
-              variant="fire"
-              onClick={() => setModalOpen("pitch")}
-              icon={<Lightbulb size={16} strokeWidth={1.5} />}
-              className="flex-1 sm:flex-none"
-            >
-              Proponer charla
-            </PillButton>
-            <PillButton
-              size="sm"
-              variant="outline"
-              onClick={() => setModalOpen("request")}
-              icon={<HelpCircle size={16} strokeWidth={1.5} />}
-              className="flex-1 sm:flex-none"
-            >
-              Pedir charla
-            </PillButton>
-            {user?.is_admin && adminButtons}
-          </div>
+          <>
+            {/* The two ways in. Deliberately oversized — this is the whole
+                point of the submission phase, so nobody should miss it. */}
+            <div className="flex flex-col sm:flex-row items-stretch gap-2.5 sm:gap-3 mt-3">
+              <PillButton
+                size="lg"
+                variant="fire"
+                onClick={() => setModalOpen("pitch")}
+                icon={<Lightbulb size={24} strokeWidth={1.5} />}
+                className="flex-1 py-4 sm:py-5 text-lg sm:text-xl shadow-[var(--glow-fire)]"
+              >
+                Quiero enseñar de…
+              </PillButton>
+              <PillButton
+                size="lg"
+                variant="primary"
+                onClick={() => setModalOpen("request")}
+                icon={<HelpCircle size={24} strokeWidth={1.5} />}
+                className="flex-1 py-4 sm:py-5 text-lg sm:text-xl"
+              >
+                Quiero aprender de…
+              </PillButton>
+            </div>
+            {user?.is_admin && (
+              <div className="flex items-center gap-2 mt-2 flex-wrap">{adminButtons}</div>
+            )}
+          </>
         ) : (
           user?.is_admin && (
             <div className="flex items-center gap-2 mt-3 flex-wrap">{adminButtons}</div>
@@ -299,7 +305,7 @@ export default function BoardPage() {
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 <TopicItems
                   topics={orphanTopics}
-                  emptyLabel="Aún no hay temas solicitados"
+                  emptyLabel="Todavía nadie pide un tema"
                   currentUserId={user?.id || ""}
                   onClaim={handleClaim}
                 />
@@ -313,7 +319,7 @@ export default function BoardPage() {
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 <TopicItems
                   topics={speakerTopics}
-                  emptyLabel="Aún no hay charlas con speaker"
+                  emptyLabel="Todavía nadie propone una charla"
                   currentUserId={user?.id || ""}
                 />
               </div>
@@ -341,7 +347,7 @@ export default function BoardPage() {
             </div>
 
             {votableTopics.length === 0 ? (
-              <EmptyState label="No hay charlas con speaker disponibles para votar" />
+              <EmptyState label="Todavía no hay charlas para votar" />
             ) : (
               <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {votableTopics.map((topic) => (
@@ -381,17 +387,17 @@ export default function BoardPage() {
 const sectionMeta = {
   orphan: {
     icon: Search,
-    title: "Temas solicitados",
-    subtitle: "Ideas buscando speaker — ¡reclama una para presentarla!",
+    title: "Quieren aprender de…",
+    subtitle: "Temas que alguien pidió — reclámalo y enséñalo tú",
     color: "var(--fire)",
-    empty: "Aún no hay temas solicitados",
+    empty: "Todavía nadie pide un tema",
   },
   speaker: {
     icon: Mic,
-    title: "Charlas con speaker",
+    title: "Van a enseñar de…",
     subtitle: "Charlas con speaker confirmado",
     color: "var(--community)",
-    empty: "Aún no hay charlas con speaker",
+    empty: "Todavía nadie propone una charla",
   },
 } as const;
 

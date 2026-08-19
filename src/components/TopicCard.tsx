@@ -178,7 +178,7 @@ export function TopicCard({
             icon={<Hand size={16} strokeWidth={1.5} />}
             className="shrink-0 min-h-[44px]"
           >
-            ¡La doy yo!
+            ¡Yo lo enseño!
           </PillButton>
         )}
       </div>

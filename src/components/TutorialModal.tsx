@@ -11,22 +11,22 @@ interface TutorialModalProps {
 const steps = [
   {
     icon: Lightbulb,
-    title: "Proponer charla",
-    body: "¿Tienes algo que compartir? Propón un tema y tú serás quien lo dé.",
+    title: "Quiero enseñar de…",
+    body: "¿Tienes algo que compartir? Propón el tema y tú das la charla.",
     color: "var(--fire)",
     soft: "var(--fire-soft)",
   },
   {
     icon: HelpCircle,
-    title: "Pedir charla",
-    body: "¿Quieres aprender algo? Sugiere un tema y alguien más puede tomarlo.",
+    title: "Quiero aprender de…",
+    body: "¿Quieres aprender algo? Pide el tema y alguien más puede enseñarlo.",
     color: "var(--community)",
     soft: "var(--community-soft)",
   },
   {
     icon: Hand,
-    title: "Reclamar un tema",
-    body: "¿Ves un tema pedido que dominas? Reclámalo y vuélvete su speaker.",
+    title: "Enseñar lo que piden",
+    body: "¿Ves un tema pedido que dominas? Reclámalo y enséñalo tú.",
     color: "var(--community)",
     soft: "var(--community-soft)",
   },
