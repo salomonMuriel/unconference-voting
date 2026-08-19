@@ -15,7 +15,7 @@ export async function GET() {
     LEFT JOIN users p ON t.proposed_by = p.id
     LEFT JOIN users s ON t.speaker_id = s.id
     LEFT JOIN (
-      SELECT topic_id, COUNT(*)::int as vote_count FROM votes GROUP BY topic_id
+      SELECT topic_id, SUM(weight)::int as vote_count FROM votes GROUP BY topic_id
     ) v ON t.id = v.topic_id
     ORDER BY t.created_at DESC
   `;

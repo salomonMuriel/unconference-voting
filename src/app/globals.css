@@ -1,50 +1,211 @@
 @import "tailwindcss";
 
-/* Dark theme (default) */
+/* ============================================================
+   Ignia Design System — tokens
+   Sourced from the Ignia design system (colors_and_type.css).
+   Light only: slate near-black on white, with orange as the
+   single accent. This is Ignia's canonical web palette.
+   ============================================================ */
+
 :root {
-  --bg: #0a0a0f;
-  --bg-card: #14141f;
-  --bg-card-hover: #1a1a2e;
-  --border: #2a2a3e;
-  --text: #ffffff;
-  --text-muted: #b0b0c8;
-  --accent: #6c5ce7;
-  --accent-hover: #7c6cf7;
-  --green: #00b894;
-  --green-hover: #00d4aa;
-  --orange: #fdcb6e;
-  --red: #e17055;
+  color-scheme: light;
+
+  /* ===== BRAND ===== */
+  --brand-orange: #db6934;
+  --brand-orange-600: #c4581f;
+  --brand-orange-400: #e88654;
+  --brand-yellow: #f5b73c;
+  --brand-purple: #6b2d8e;
+  --brand-purple-deep: #3d1a5c;
+  --brand-plum: #4a1a3f;
+  --flame-gradient: linear-gradient(
+    90deg,
+    #f5b73c 0%,
+    #6b2d8e 20%,
+    #db6934 50%,
+    #6b2d8e 75%,
+    #4a1a3f 100%
+  );
+
+  /* ===== NEUTRALS ===== */
+  --background: hsl(0 0% 100%);
+  --surface: hsl(240 5% 96%);
+  --surface-hover: hsl(240 5% 92%);
+  --foreground: hsl(222.2 84% 4.9%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --border: hsl(240 6% 80%);
+  --input-border: hsl(214.3 31.8% 91.4%);
+
+  /* ===== SEMANTIC ROLES ===== */
+  --primary: hsl(222.2 47.4% 11.2%);
+  --primary-foreground: hsl(210 40% 98%);
+  --primary-hover: hsl(222.2 47.4% 18%);
+  --primary-soft: hsl(222.2 47.4% 11.2% / 0.08);
+
+  --fire: var(--brand-orange);
+  --fire-foreground: #ffffff;
+  --fire-soft: rgb(219 105 52 / 0.12);
+  /* The design system's canonical CTA blend: slate -> orange. */
+  --fire-gradient: linear-gradient(90deg, var(--primary) 0%, var(--brand-orange) 100%);
+
+  --community: hsl(196 60% 38%);
+  --community-soft: hsl(196 60% 38% / 0.12);
+
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-soft: hsl(0 84.2% 60.2% / 0.1);
+
+  --overlay: rgb(15 15 20 / 0.5);
+
+  /* ===== RADII ===== */
+  --radius: 0.2rem; /* base — notably tight. inputs, chips */
+  --radius-lg: 0.5rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* ===== SHADOWS ===== */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --glow-fire: 0 0 24px rgb(219 105 52 / 0.35);
+
+  /* ===== TYPE =====
+     Space Grotesk carries display + accents, Geist carries body + UI. */
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+
+  /* ===== MOTION ===== */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 200ms;
+  --dur-med: 300ms;
+  --dur-slow: 500ms;
 }
 
-/* Light theme */
-[data-theme="light"] {
-  --bg: #f5f5f7;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f0f0f3;
-  --border: #d8d8e0;
-  --text: #1a1a2e;
-  --text-muted: #6b6b80;
-  --accent: #6c5ce7;
-  --accent-hover: #5a4bd6;
-  --green: #00a884;
-  --green-hover: #009070;
-  --orange: #e5a800;
-  --red: #d44836;
+/* Expose tokens as Tailwind utilities. */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted-foreground);
+  --color-line: var(--border);
+  --color-input-line: var(--input-border);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-fire: var(--fire);
+  --color-fire-soft: var(--fire-soft);
+  --color-community: var(--community);
+  --color-community-soft: var(--community-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+
+  --ease-expo: var(--ease-out-expo);
+}
+
+/* ---------- Base ---------- */
+html {
+  font-family: var(--font-sans);
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Smooth transitions for reordering */
-.topic-card {
-  transition: transform 0.3s ease, opacity 0.3s ease;
+/* Display family carries the personality; Geist stays out of the way. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
-/* Pulse animation for vote count changes */
+/* Uppercase eyebrow — Space Grotesk, wide tracking. */
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+}
+
+/* ---------- Brand utilities ---------- */
+.text-gradient-fire {
+  background: linear-gradient(
+    90deg,
+    var(--brand-orange) 0%,
+    var(--brand-orange) 60%,
+    rgb(219 105 52 / 0.6) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-flame-gradient {
+  background: var(--flame-gradient);
+}
+
+/* The Ignia wordmark lockup. */
+.ignia-logo {
+  background-image: url("/logo-light.png");
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: contain;
+}
+
+/* ---------- Card pattern ----------
+   Fill + border + 4px lift + a top accent line that scales in
+   from the left over 500ms. Straight from the design system. */
+.ignia-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--dur-slow) var(--ease-out-expo),
+    box-shadow var(--dur-slow) var(--ease-out-expo),
+    border-color var(--dur-slow) var(--ease-out-expo);
+}
+
+.ignia-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-line, var(--primary)),
+    color-mix(in srgb, var(--accent-line, var(--primary)) 50%, transparent),
+    transparent
+  );
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-slow) var(--ease-out-expo);
+}
+
+@media (hover: hover) {
+  .ignia-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: color-mix(in srgb, var(--accent-line, var(--primary)) 30%, transparent);
+  }
+
+  .ignia-card:hover::before {
+    transform: scaleX(1);
+  }
+}
+
+/* ---------- Motion ---------- */
 @keyframes pulse-vote {
   0% { transform: scale(1); }
   50% { transform: scale(1.15); }
@@ -52,15 +213,33 @@ body {
 }
 
 .vote-pulse {
-  animation: pulse-vote 0.3s ease;
+  animation: pulse-vote var(--dur-med) var(--ease-out-expo);
 }
 
-/* Scrollbar styling */
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+.hero-fade-up {
+  animation: hero-fade-up var(--dur-slow) var(--ease-out-expo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border);

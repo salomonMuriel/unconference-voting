@@ -2,10 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Flame,
+  HelpCircle,
+  Lightbulb,
+  Loader2,
+  LogOut,
+  Mic,
+  RotateCcw,
+  Search,
+  Vote,
+} from "lucide-react";
 import { TopicCard } from "@/components/TopicCard";
+import { MAX_VOTES } from "@/lib/constants";
 import { NewTopicModal } from "@/components/NewTopicModal";
 import { TutorialModal } from "@/components/TutorialModal";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { IgniaLogo, Pill, PillButton, SquareButton, Eyebrow } from "@/components/ui";
 
 interface User {
   id: string;
@@ -32,11 +45,13 @@ export default function BoardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [phase, setPhase] = useState<"submission" | "voting">("submission");
-  const [myVotes, setMyVotes] = useState<Set<string>>(new Set());
+  const [myVotes, setMyVotes] = useState<Record<string, number>>({});
   const [modalOpen, setModalOpen] = useState<ModalType>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const votesUsed = Object.values(myVotes).reduce((sum, n) => sum + n, 0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -60,7 +75,7 @@ export default function BoardPage() {
       setUser(userData.user);
       setTopics(topicsData.topics);
       setPhase(phaseData.phase);
-      setMyVotes(new Set(votesData.votes));
+      setMyVotes(votesData.votes);
     } catch {
       // Silently retry on next poll
     } finally {
@@ -102,19 +117,28 @@ export default function BoardPage() {
     fetchData();
   }
 
-  async function handleVote(topicId: string) {
-    // Optimistic update
+  async function handleVote(topicId: string, delta: 1 | -1) {
+    const current = myVotes[topicId] || 0;
+    if (delta === 1 && votesUsed >= MAX_VOTES) return;
+    if (delta === -1 && current === 0) return;
+
+    // Optimistic update — the poll reconciles it a moment later.
     setMyVotes((prev) => {
-      const next = new Set(prev);
-      if (next.has(topicId)) {
-        next.delete(topicId);
-      } else {
-        next.add(topicId);
-      }
+      const next = { ...prev };
+      const value = (next[topicId] || 0) + delta;
+      if (value <= 0) delete next[topicId];
+      else next[topicId] = value;
       return next;
     });
+    setTopics((prev) =>
+      prev.map((t) => (t.id === topicId ? { ...t, vote_count: t.vote_count + delta } : t))
+    );
 
-    await fetch(`/api/topics/${topicId}/vote`, { method: "POST" });
+    await fetch(`/api/topics/${topicId}/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delta }),
+    });
     fetchData();
   }
 
@@ -130,297 +154,215 @@ export default function BoardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-[var(--text-muted)] text-xl">Cargando... ⏳</div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-muted">
+        <Loader2 size={28} strokeWidth={1.5} className="animate-spin" />
+        <p className="text-lg">Cargando…</p>
       </div>
     );
   }
 
   const orphanTopics = topics.filter((t) => t.type === "orphan");
   const speakerTopics = topics.filter((t) => t.type === "speaker_led");
-  const sortedByVotes = [...topics]
+  // Voting order is fixed (oldest first) on purpose — a board that reshuffles
+  // under people's fingers is impossible to follow on a projector.
+  const votableTopics = topics
     .filter((t) => t.speaker_id)
-    .sort((a, b) => b.vote_count - a.vote_count);
+    .slice()
+    .reverse();
+  const topVotes = Math.max(0, ...votableTopics.map((t) => t.vote_count));
+  const votesLeft = Math.max(0, MAX_VOTES - votesUsed);
+
+  const adminButtons = (
+    <>
+      <SquareButton onClick={handleAdvancePhase} variant="secondary" className="flex-1 sm:flex-none">
+        {phase === "submission" ? (
+          <>
+            <Vote size={16} strokeWidth={1.5} />
+            Iniciar votación
+          </>
+        ) : (
+          <>
+            <ArrowLeft size={16} strokeWidth={1.5} />
+            Volver a propuestas
+          </>
+        )}
+      </SquareButton>
+      <SquareButton onClick={handleReset} variant="danger" className="flex-1 sm:flex-none">
+        <RotateCcw size={16} strokeWidth={1.5} />
+        Reiniciar todo
+      </SquareButton>
+    </>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b border-[var(--border)] px-4 sm:px-6 py-3 sm:py-4 shrink-0">
-        {/* Top row: title + phase badge + user/logout */}
+      <header
+        className="sticky top-0 z-40 shrink-0 border-b border-line px-4 sm:px-6 py-3 sm:py-4
+          bg-[var(--background)]/85 backdrop-blur-md"
+      >
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <h1 className="text-lg sm:text-2xl font-bold shrink-0">🎤 Unconference</h1>
-            <span
-              className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium shrink-0 ${
-                phase === "submission"
-                  ? "bg-[var(--accent)]/20 text-[var(--accent)]"
-                  : "bg-[var(--green)]/20 text-[var(--green)]"
-              }`}
-            >
-              {phase === "submission" ? "📝 Propuestas" : "🗳️ Votación"}
-            </span>
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <IgniaLogo className="h-6 sm:h-7 w-[86px] sm:w-[100px] shrink-0" />
+            <div className="h-6 w-px bg-line shrink-0" />
+            <Pill tone={phase === "submission" ? "muted" : "live"} className="shrink-0">
+              {phase === "submission" ? (
+                <>
+                  <Lightbulb size={14} strokeWidth={1.5} />
+                  Propuestas
+                </>
+              ) : (
+                <>
+                  <Vote size={14} strokeWidth={1.5} />
+                  Votación
+                </>
+              )}
+            </Pill>
+
+            {phase === "voting" && (
+              <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-line shrink-0">
+                <VoteBudget used={votesUsed} />
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 pl-2 border-l border-[var(--border)] shrink-0">
-            <span className="text-[var(--text-muted)] text-sm hidden sm:inline truncate max-w-[120px]">
+          <div className="flex items-center gap-1 sm:gap-2 pl-2 border-l border-line shrink-0">
+            <span className="text-muted text-sm hidden sm:inline truncate max-w-[120px]">
               {user?.name}
             </span>
-            <ThemeToggle />
             <button
               onClick={handleLogout}
-              className="text-[var(--text-muted)] hover:text-[var(--red)] text-sm transition-colors cursor-pointer py-2 px-1"
+              aria-label="Salir"
+              className="p-2 rounded-[var(--radius)] text-muted hover:text-destructive
+                hover:bg-surface-hover transition-colors duration-200 cursor-pointer"
+              title="Salir"
             >
-              Salir
+              <LogOut size={20} strokeWidth={1.5} />
             </button>
           </div>
         </div>
 
-        {/* Action buttons row - only shown during submission phase */}
-        {phase === "submission" && (
+        {phase === "submission" ? (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <button
+            <PillButton
+              size="sm"
+              variant="fire"
               onClick={() => setModalOpen("pitch")}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)]
-                text-white font-medium transition-colors cursor-pointer text-sm sm:text-base text-center"
+              icon={<Lightbulb size={16} strokeWidth={1.5} />}
+              className="flex-1 sm:flex-none"
             >
-              Proponer charla 💡
-            </button>
-            <button
+              Proponer charla
+            </PillButton>
+            <PillButton
+              size="sm"
+              variant="outline"
               onClick={() => setModalOpen("request")}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]
-                hover:bg-[var(--bg-card-hover)] font-medium transition-colors cursor-pointer text-sm sm:text-base text-center"
+              icon={<HelpCircle size={16} strokeWidth={1.5} />}
+              className="flex-1 sm:flex-none"
             >
-              Pedir charla 🙋
-            </button>
-            {user?.is_admin && (
-              <>
-                <button
-                  onClick={handleAdvancePhase}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-[var(--orange)]/20 text-[var(--orange)]
-                    hover:bg-[var(--orange)]/30 font-medium transition-colors cursor-pointer text-sm sm:text-base text-center"
-                >
-                  Iniciar votación 🗳️
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-[var(--red)]/20 text-[var(--red)]
-                    hover:bg-[var(--red)]/30 font-medium transition-colors cursor-pointer text-sm sm:text-base text-center"
-                >
-                  Reiniciar todo 🗑️
-                </button>
-              </>
-            )}
+              Pedir charla
+            </PillButton>
+            {user?.is_admin && adminButtons}
           </div>
-        )}
-
-        {/* Admin buttons during voting phase */}
-        {phase === "voting" && user?.is_admin && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <button
-              onClick={handleAdvancePhase}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-[var(--orange)]/20 text-[var(--orange)]
-                hover:bg-[var(--orange)]/30 font-medium transition-colors cursor-pointer text-sm text-center"
-            >
-              Volver a propuestas 📝
-            </button>
-            <button
-              onClick={handleReset}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-[var(--red)]/20 text-[var(--red)]
-                hover:bg-[var(--red)]/30 font-medium transition-colors cursor-pointer text-sm text-center"
-            >
-              Reiniciar todo 🗑️
-            </button>
-          </div>
+        ) : (
+          user?.is_admin && (
+            <div className="flex items-center gap-2 mt-3 flex-wrap">{adminButtons}</div>
+          )
         )}
       </header>
 
-      {/* Content */}
       {phase === "submission" ? (
-        /* On mobile: single scrollable column with sections stacked.
-           On desktop (lg+): side-by-side split with independent scroll per column. */
         <>
-          {/* Mobile layout: stacked sections, single scroll */}
-          <div className="lg:hidden flex-1 overflow-y-auto p-4 space-y-6">
-            {/* Orphan Topics Section */}
-            <div>
-              <div className="mb-3">
-                <h2 className="text-base font-semibold flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-[var(--orange)] shrink-0" />
-                  Temas solicitados 🔎
-                  <span className="text-[var(--text-muted)] font-normal text-sm">
-                    ({orphanTopics.length})
-                  </span>
-                </h2>
-                <p className="text-[var(--text-muted)] text-sm mt-1 ml-5">
-                  Ideas buscando un speaker — ¡reclama una para presentar!
-                </p>
-              </div>
-              <div className="space-y-3">
-                {orphanTopics.length === 0 ? (
-                  <div className="text-center text-[var(--text-muted)] py-8 text-sm">
-                    Aún no hay temas solicitados
-                  </div>
-                ) : (
-                  orphanTopics.map((topic) => (
-                    <TopicCard
-                      key={topic.id}
-                      topic={topic}
-                      phase={phase}
-                      currentUserId={user?.id || ""}
-                      isVoted={false}
-                      onClaim={() => handleClaim(topic.id)}
-                      onVote={() => {}}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="border-t border-[var(--border)]" />
-
-            {/* Speaker-Led Topics Section */}
-            <div>
-              <div className="mb-3">
-                <h2 className="text-base font-semibold flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-[var(--green)] shrink-0" />
-                  Charlas con speaker 🎙️
-                  <span className="text-[var(--text-muted)] font-normal text-sm">
-                    ({speakerTopics.length})
-                  </span>
-                </h2>
-                <p className="text-[var(--text-muted)] text-sm mt-1 ml-5">
-                  Charlas con speaker confirmado
-                </p>
-              </div>
-              <div className="space-y-3">
-                {speakerTopics.length === 0 ? (
-                  <div className="text-center text-[var(--text-muted)] py-8 text-sm">
-                    Aún no hay charlas con speaker
-                  </div>
-                ) : (
-                  speakerTopics.map((topic) => (
-                    <TopicCard
-                      key={topic.id}
-                      topic={topic}
-                      phase={phase}
-                      currentUserId={user?.id || ""}
-                      isVoted={false}
-                      onClaim={() => {}}
-                      onVote={() => {}}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
+          {/* Mobile: stacked sections, single scroll. */}
+          <div className="lg:hidden flex-1 overflow-y-auto p-4 space-y-8">
+            <TopicSection
+              variant="orphan"
+              count={orphanTopics.length}
+              topics={orphanTopics}
+              currentUserId={user?.id || ""}
+              onClaim={handleClaim}
+            />
+            <div className="h-px bg-[linear-gradient(90deg,transparent,var(--border),transparent)]" />
+            <TopicSection
+              variant="speaker"
+              count={speakerTopics.length}
+              topics={speakerTopics}
+              currentUserId={user?.id || ""}
+            />
           </div>
 
-          {/* Desktop layout: side-by-side columns with independent scroll */}
+          {/* Desktop: side-by-side columns, independent scroll. */}
           <div className="hidden lg:flex flex-1 divide-x divide-[var(--border)] overflow-hidden">
-            {/* Left Column - Orphan Topics */}
             <div className="flex flex-col overflow-hidden flex-1">
-              <div className="px-6 py-4 border-b border-[var(--border)] shrink-0">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-[var(--text)]">
-                  <span className="w-3 h-3 rounded-full bg-[var(--orange)]" />
-                  Temas solicitados 🔎
-                  <span className="text-[var(--text-muted)] font-normal text-base ml-1">
-                    ({orphanTopics.length})
-                  </span>
-                </h2>
-                <p className="text-[var(--text-muted)] text-base mt-1">
-                  Ideas buscando un speaker — ¡reclama una para presentar!
-                </p>
+              <div className="px-6 py-4 border-b border-line shrink-0">
+                <SectionHeading variant="orphan" count={orphanTopics.length} />
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {orphanTopics.length === 0 ? (
-                  <div className="text-center text-[var(--text-muted)] py-12">
-                    Aún no hay temas solicitados
-                  </div>
-                ) : (
-                  orphanTopics.map((topic) => (
-                    <TopicCard
-                      key={topic.id}
-                      topic={topic}
-                      phase={phase}
-                      currentUserId={user?.id || ""}
-                      isVoted={false}
-                      onClaim={() => handleClaim(topic.id)}
-                      onVote={() => {}}
-                    />
-                  ))
-                )}
+                <TopicItems
+                  topics={orphanTopics}
+                  emptyLabel="Aún no hay temas solicitados"
+                  currentUserId={user?.id || ""}
+                  onClaim={handleClaim}
+                />
               </div>
             </div>
 
-            {/* Right Column - Speaker-Led Topics */}
             <div className="flex flex-col overflow-hidden flex-1">
-              <div className="px-6 py-4 border-b border-[var(--border)] shrink-0">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-[var(--text)]">
-                  <span className="w-3 h-3 rounded-full bg-[var(--green)]" />
-                  Charlas con speaker 🎙️
-                  <span className="text-[var(--text-muted)] font-normal text-base ml-1">
-                    ({speakerTopics.length})
-                  </span>
-                </h2>
-                <p className="text-[var(--text-muted)] text-base mt-1">
-                  Charlas con speaker confirmado
-                </p>
+              <div className="px-6 py-4 border-b border-line shrink-0">
+                <SectionHeading variant="speaker" count={speakerTopics.length} />
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {speakerTopics.length === 0 ? (
-                  <div className="text-center text-[var(--text-muted)] py-12">
-                    Aún no hay charlas con speaker
-                  </div>
-                ) : (
-                  speakerTopics.map((topic) => (
-                    <TopicCard
-                      key={topic.id}
-                      topic={topic}
-                      phase={phase}
-                      currentUserId={user?.id || ""}
-                      isVoted={false}
-                      onClaim={() => {}}
-                      onVote={() => {}}
-                    />
-                  ))
-                )}
+                <TopicItems
+                  topics={speakerTopics}
+                  emptyLabel="Aún no hay charlas con speaker"
+                  currentUserId={user?.id || ""}
+                />
               </div>
             </div>
           </div>
         </>
       ) : (
-        /* Voting Phase - Leaderboard */
+        /* Voting phase — fixed-order grid so nothing jumps around */
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
             <div className="text-center mb-6 sm:mb-8">
-              <h2 className="text-xl sm:text-3xl font-bold mb-1 text-[var(--text)]">¡Vota por las sesiones! 🔥</h2>
-              <p className="text-[var(--text-muted)] text-sm sm:text-lg">
-                Elige las charlas que quieres ver. Se ordenan por votos en tiempo real.
+              <Eyebrow className="mb-2">Votación abierta</Eyebrow>
+              <h2 className="font-display text-2xl sm:text-4xl font-bold mb-2">
+                Vota por las charlas <span className="text-gradient-fire">con más fuego</span> 🔥
+              </h2>
+              <p className="text-muted text-sm sm:text-lg">
+                Tienes {MAX_VOTES} votos. Puedes poner varios en la misma charla.
               </p>
             </div>
 
-            {sortedByVotes.length === 0 ? (
-              <div className="text-center text-[var(--text-muted)] py-12">
-                No hay temas con speaker disponibles para votar
-              </div>
+            {/* Sticky budget bar — mobile has no room for it in the header. */}
+            <div className="sm:hidden sticky top-0 z-30 -mx-4 px-4 py-3 mb-4 border-b border-line
+              bg-[var(--background)]/95 backdrop-blur-md flex justify-center">
+              <VoteBudget used={votesUsed} />
+            </div>
+
+            {votableTopics.length === 0 ? (
+              <EmptyState label="No hay charlas con speaker disponibles para votar" />
             ) : (
-              sortedByVotes.map((topic, index) => (
-                <TopicCard
-                  key={topic.id}
-                  topic={topic}
-                  phase={phase}
-                  currentUserId={user?.id || ""}
-                  isVoted={myVotes.has(topic.id)}
-                  onClaim={() => {}}
-                  onVote={() => handleVote(topic.id)}
-                  rank={index + 1}
-                />
-              ))
+              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {votableTopics.map((topic) => (
+                  <TopicCard
+                    key={topic.id}
+                    topic={topic}
+                    phase={phase}
+                    currentUserId={user?.id || ""}
+                    myVotes={myVotes[topic.id] || 0}
+                    canAddVote={votesLeft > 0}
+                    topVotes={topVotes}
+                    onClaim={() => {}}
+                    onVote={(delta) => handleVote(topic.id, delta)}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Modals */}
       {modalOpen && (
         <NewTopicModal
           type={modalOpen}
@@ -429,9 +371,145 @@ export default function BoardPage() {
         />
       )}
 
-      {showTutorial && (
-        <TutorialModal onClose={() => setShowTutorial(false)} />
-      )}
+      {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} />}
+    </div>
+  );
+}
+
+/* ---------- Board sub-components ---------- */
+
+const sectionMeta = {
+  orphan: {
+    icon: Search,
+    title: "Temas solicitados",
+    subtitle: "Ideas buscando speaker — ¡reclama una para presentarla!",
+    color: "var(--fire)",
+    empty: "Aún no hay temas solicitados",
+  },
+  speaker: {
+    icon: Mic,
+    title: "Charlas con speaker",
+    subtitle: "Charlas con speaker confirmado",
+    color: "var(--community)",
+    empty: "Aún no hay charlas con speaker",
+  },
+} as const;
+
+function SectionHeading({
+  variant,
+  count,
+}: {
+  variant: keyof typeof sectionMeta;
+  count: number;
+}) {
+  const { icon: Icon, title, subtitle, color } = sectionMeta[variant];
+  return (
+    <div>
+      <h2 className="font-display text-lg lg:text-xl font-bold flex items-center gap-2.5">
+        <Icon size={20} strokeWidth={1.5} style={{ color }} className="shrink-0" />
+        {title}
+        <span className="text-muted font-normal font-sans text-sm">({count})</span>
+      </h2>
+      <p className="text-muted text-sm lg:text-base mt-1 ml-[30px] lg:ml-0">{subtitle}</p>
+    </div>
+  );
+}
+
+function TopicSection({
+  variant,
+  count,
+  topics,
+  currentUserId,
+  onClaim,
+}: {
+  variant: keyof typeof sectionMeta;
+  count: number;
+  topics: Topic[];
+  currentUserId: string;
+  onClaim?: (id: string) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-4">
+        <SectionHeading variant={variant} count={count} />
+      </div>
+      <div className="space-y-3">
+        <TopicItems
+          topics={topics}
+          emptyLabel={sectionMeta[variant].empty}
+          currentUserId={currentUserId}
+          onClaim={onClaim}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TopicItems({
+  topics,
+  emptyLabel,
+  currentUserId,
+  onClaim,
+}: {
+  topics: Topic[];
+  emptyLabel: string;
+  currentUserId: string;
+  onClaim?: (id: string) => void;
+}) {
+  if (topics.length === 0) return <EmptyState label={emptyLabel} />;
+
+  return (
+    <>
+      {topics.map((topic) => (
+        <TopicCard
+          key={topic.id}
+          topic={topic}
+          phase="submission"
+          currentUserId={currentUserId}
+          myVotes={0}
+          canAddVote={false}
+          topVotes={0}
+          onClaim={() => onClaim?.(topic.id)}
+          onVote={() => {}}
+        />
+      ))}
+    </>
+  );
+}
+
+/** Flame pips: how many of your votes are spent, how many are left. */
+function VoteBudget({ used }: { used: number }) {
+  const left = Math.max(0, MAX_VOTES - used);
+  return (
+    <div className="inline-flex items-center gap-2.5">
+      <div className="flex items-center gap-1">
+        {Array.from({ length: MAX_VOTES }).map((_, i) => (
+          <Flame
+            key={i}
+            size={20}
+            strokeWidth={1.5}
+            className={i < used ? "text-fire fill-fire/25" : "text-muted/40"}
+          />
+        ))}
+      </div>
+      <span className="text-sm font-semibold whitespace-nowrap">
+        {left > 0 ? (
+          <>
+            <span className="text-fire tabular-nums">{left}</span>
+            <span className="text-muted font-normal"> {left === 1 ? "voto" : "votos"} sin usar</span>
+          </>
+        ) : (
+          <span className="text-muted font-normal">Sin votos restantes</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="text-center text-muted py-12 text-sm border border-dashed border-line rounded-[var(--radius-xl)]">
+      {label}
     </div>
   );
 }

@@ -34,10 +34,14 @@ export async function initDb() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID REFERENCES users(id) ON DELETE CASCADE,
       topic_id UUID REFERENCES topics(id) ON DELETE CASCADE,
+      weight INTEGER NOT NULL DEFAULT 1,
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, topic_id)
     )
   `;
+
+  // Existing databases predate weighted votes (several votes on one topic).
+  await sql`ALTER TABLE votes ADD COLUMN IF NOT EXISTS weight INTEGER NOT NULL DEFAULT 1`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS app_state (
